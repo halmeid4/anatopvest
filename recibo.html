@@ -36,6 +36,12 @@
   .corpo p { font-size:18px; line-height:2.3; margin:12px 0; }
   .corpo input, .rodape input { font:inherit; border:0; border-bottom:1px solid #999; background:transparent; padding:0 4px; min-width:120px; color:inherit; }
   .extenso { font-style:italic; border-bottom:1px solid #999; padding:0 4px; }
+  .equip { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin:4px 0 8px; }
+  .item { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:17px;
+          border:1px solid #e3d3dc; border-radius:10px; padding:6px 12px; }
+  .corpo .item input { width:64px; min-width:0; text-align:center; border:1px solid #bbb; border-radius:8px; padding:4px; font:700 16px system-ui, sans-serif; }
+  .cliente .item input { border-color:transparent; }
+  @media print { .corpo .item input { border-color:transparent; } }
 
   .rodape { display:flex; justify-content:space-between; align-items:flex-end; margin-top:28px; gap:24px; }
   .assinatura { text-align:center; width:320px; }
@@ -61,6 +67,7 @@
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
   @media (max-width:600px) {
+    .equip { grid-template-columns:1fr; }
     .recibo { padding:28px 22px; }
     header { flex-wrap:wrap; }
     .titulo { margin-left:0; text-align:left; }
@@ -101,7 +108,13 @@
     <p>Recebi(emos) de <input id="pagador" style="width:70%" aria-label="Nome de quem pagou" placeholder="nome do cliente">,
        CPF/CNPJ <input id="doc" aria-label="CPF ou CNPJ do cliente" style="width:220px">,
        a importância de <span class="extenso" id="extenso">—</span>,
-       referente a <input id="referente" style="width:75%" aria-label="Referente a" placeholder="locação de cama elástica, dia 00/00">.</p>
+       referente a <input id="referente" style="width:75%" aria-label="Referente a" placeholder="locação de equipamentos, festa dia 00/00">.</p>
+    <div class="equip" aria-label="Equipamentos locados">
+      <label class="item"><span>Cama elástica</span><input id="qCama" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de camas elásticas"></label>
+      <label class="item"><span>Piscina de bolinhas</span><input id="qPiscina" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de piscinas de bolinhas"></label>
+      <label class="item"><span>Mesa</span><input id="qMesa" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de mesas"></label>
+      <label class="item"><span>Cadeira</span><input id="qCadeira" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de cadeiras"></label>
+    </div>
     <p>Forma de pagamento: <input id="pagamento" aria-label="Forma de pagamento" placeholder="Pix / dinheiro / cartão"></p>
     <p>Para clareza, firmo(amos) o presente.</p>
   </section>
@@ -154,7 +167,13 @@ function lerValor(s) { return Number(String(s).replace(/[^\d,]/g, "").replace(",
  [1000000,"um milhão de reais"],[0.99,"noventa e nove centavos"]]
   .forEach(([v, e]) => console.assert(extenso(v) === e, v, extenso(v)));
 
-const CAMPOS = ["numero","valor","pagador","doc","referente","pagamento","data"];
+const EQUIP = { qCama:"Cama elástica", qPiscina:"Piscina de bolinhas", qMesa:"Mesa", qCadeira:"Cadeira" };
+const CAMPOS = ["numero","valor","pagador","doc","referente","pagamento","data", ...Object.keys(EQUIP)];
+const resumo = d => Object.entries(EQUIP).filter(([k]) => +d[k] > 0).map(([k, n]) => `${d[k]}x ${n}`).join(", ");
+// mostra só os equipamentos com quantidade (recibo do cliente e impressão)
+const ocultarVazios = sim => Object.keys(EQUIP).forEach(k => $(k).closest(".item").style.display = sim && !(+$(k).value > 0) ? "none" : "");
+window.addEventListener("beforeprint", () => ocultarVazios(true));
+window.addEventListener("afterprint", () => { if (!document.body.classList.contains("cliente")) ocultarVazios(false); });
 const valor = $("valor");
 const mostrarExtenso = () => $("extenso").textContent = valor.value ? extenso(lerValor(valor.value)) : "—";
 valor.addEventListener("input", mostrarExtenso);
@@ -177,7 +196,7 @@ function enviarCliente() {
   const d = Object.fromEntries(CAMPOS.map(id => [id, $(id).value]));
   d.ass = pad.dados;
   guardarNumero();
-  abrirWhats(fone, `Olá, ${d.pagador.split(" ")[0] || ""}! 😊\nSegue seu recibo da *AnaTopVest* (nº ${d.numero}) no valor de *R$ ${d.valor}*${d.referente ? ", referente a " + d.referente : ""}.\n\nVer e salvar o recibo:\n${linkCom(d)}`);
+  abrirWhats(fone, `Olá, ${d.pagador.split(" ")[0] || ""}! 😊\nSegue seu recibo da *AnaTopVest* (nº ${d.numero}) no valor de *R$ ${d.valor}*${d.referente ? ", referente a " + d.referente : ""}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}\nVer e salvar o recibo:\n${linkCom(d)}`);
 }
 
 let pad;
@@ -185,6 +204,7 @@ const d = lerHash();
 if (d) { // cliente abrindo o recibo recebido
   document.body.classList.add("cliente");
   CAMPOS.forEach(id => { $(id).value = d[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });
+  ocultarVazios(true);
   mostrarExtenso();
   pad = criarAssinatura($("ass"), { editavel:false });
   pad.dados = d.ass || "";
