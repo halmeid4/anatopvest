@@ -125,6 +125,7 @@
   <div class="valores grade">
     <div><label for="total">Valor total (R$)</label><input id="total" inputmode="decimal" placeholder="0,00"></div>
     <div><label for="sinal">Sinal pago (R$)</label><input id="sinal" inputmode="decimal" placeholder="0,00"></div>
+    <div class="cheio" id="caixaTaxa"><label for="taxa">Taxa de cancelamento</label><input id="taxa" placeholder="Ex.: 100,00 ou 30% (fica salva para os próximos)"></div>
     <div class="cheio restante">Restante: <span id="restante">R$ 0,00</span></div>
   </div>
 
@@ -132,7 +133,7 @@
   <textarea id="obs" placeholder="Forma de pagamento, cancelamento, regras de uso… (fica salvo para os próximos)"></textarea>
 
   <h2>Termo de responsabilidade</h2>
-  <p class="termo">O(a) cliente se responsabiliza pela utilização correta e pelos cuidados com os equipamentos listados neste agendamento durante todo o período da locação, respondendo por danos, perdas ou extravios causados por mau uso.</p>
+  <p class="termo">O(a) cliente se responsabiliza pela utilização correta e pelos cuidados com os equipamentos listados neste agendamento durante todo o período da locação, respondendo por danos, perdas ou extravios causados por mau uso.<span id="termoTaxa"></span></p>
 
   <!-- você -->
   <section class="envio dona">
@@ -168,7 +169,14 @@
 const EQUIP = { qCama:"Cama elástica", qPiscina:"Piscina de bolinhas", qMesa:"Mesa", qCadeira:"Cadeira" };
 const CAMPOS = ["nome","fone","doc","data","hora","local", ...Object.keys(EQUIP), "itens","total","sinal","obs"];
 // ordem fixa do link: só acrescentar no fim
-const CHAVES = [...CAMPOS, "meu", "quando"];
+const CHAVES = [...CAMPOS, "meu", "quando", "taxa"];
+// "30%" fica como está; número vira R$
+const taxaTxt = t => /%/.test(t) ? t.trim() : num(t) ? brl(num(t)) : "";
+function mostrarTaxa() {
+  const t = taxaTxt($("taxa").value);
+  $("termoTaxa").textContent = t ? ` Em caso de cancelamento pelo(a) cliente, será cobrada a taxa de cancelamento de ${t}.` : "";
+}
+$("taxa").addEventListener("input", mostrarTaxa);
 const resumo = d => Object.entries(EQUIP).filter(([k]) => +d[k] > 0).map(([k, n]) => `${d[k]}x ${n}`).join(", ");
 const num = s => Number(String(s).replace(/[^\d,]/g, "").replace(",", ".")) || 0;
 const brl = n => n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
@@ -187,7 +195,8 @@ function enviarCliente() {
   if (location.protocol !== "https:") return alert("Abra esta página pelo endereço publicado (https://...) para o link funcionar no celular do cliente.");
   localStorage.condicoes = $("obs").value;
   localStorage.meu = $("meu").value;
-  const d = coletar(); d.meu = $("meu").value;
+  localStorage.taxa = $("taxa").value;
+  const d = coletar(); d.meu = $("meu").value; d.taxa = $("taxa").value;
   if (!resumo(d) && !d.itens.trim()) { alert("Informe a quantidade de pelo menos um equipamento."); return $("qCama").focus(); }
   abrirWhats(fone, `Olá, ${d.nome.split(" ")[0]}! 😊\nSegue a confirmação do seu agendamento com a *AnaTopVest* para ${dataBR(d.data)}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}Confira os dados, assine e me devolva pelo link:\n${linkCom(d, CHAVES)}`);
 }
@@ -206,6 +215,8 @@ try { recebido = lerHash(CHAVES); } catch { alert("Link inválido ou incompleto.
 if (recebido) {
   CAMPOS.forEach(id => { $(id).value = recebido[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });
   Object.keys(EQUIP).forEach(k => { if (!(+recebido[k] > 0)) $(k).closest(".item").style.display = "none"; }); // mostra só o que foi alugado
+  $("taxa").value = taxaTxt(recebido.taxa || ""); $("taxa").readOnly = true; $("taxa").placeholder = "";
+  if (!$("taxa").value) $("caixaTaxa").style.display = "none";
   document.querySelectorAll("textarea").forEach(t => t.style.height = t.scrollHeight + 4 + "px");
   const assinado = !!recebido.ass;
   document.body.classList.add(assinado ? "assinado" : "cliente");
@@ -219,8 +230,10 @@ if (recebido) {
 } else {
   $("obs").value = localStorage.condicoes || "";
   if (localStorage.meu) $("meu").value = localStorage.meu;
+  $("taxa").value = localStorage.taxa || "";
 }
 atualizar();
+mostrarTaxa();
 </script>
 </body>
 </html>
