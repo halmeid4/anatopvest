@@ -8,11 +8,11 @@ const abrirWhats = (fone, texto) => {
 };
 const foneBR = s => { let f = String(s).replace(/\D/g, ""); return f.length < 10 ? "" : f.startsWith("55") ? f : "55" + f; };
 
-// o #hash não é enviado a servidor nenhum
+// dados no ?d= do link: o WhatsApp do iPhone não deixa clicável o que vem depois do "#"
 const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0))));
-const linkCom = dados => location.href.split("#")[0] + "#" + enc(dados);
-const lerHash = () => location.hash.length > 1 ? dec(location.hash.slice(1)) : null;
+const linkCom = dados => location.origin + location.pathname + "?d=" + enc(dados);
+const lerHash = () => { const s = new URLSearchParams(location.search).get("d") || location.hash.slice(1); return s ? dec(s) : null; }; // "#" = links antigos
 
 // traços guardados num espaço fixo 500x160, assim a assinatura cabe no link e redesenha em qualquer tela
 function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
