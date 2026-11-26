@@ -34,7 +34,8 @@ function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
     ctx.lineWidth = 2.4; ctx.lineCap = ctx.lineJoin = "round"; ctx.strokeStyle = "#1a237e";
     desenhar();
   };
-  const pos = e => { const r = cv.getBoundingClientRect(); return [Math.round((e.clientX - r.left) * W / r.width), Math.round((e.clientY - r.top) * H / r.height)]; };
+  const lim = (v, max) => Math.min(Math.max(Math.round(v), 0), max);
+  const pos = e => { const r = cv.getBoundingClientRect(); return [lim((e.clientX - r.left) * W / r.width, W), lim((e.clientY - r.top) * H / r.height, H)]; };
   const fim = () => { if (atual) { atual = null; aoMudar && aoMudar(); } };
   if (editavel) {
     cv.style.touchAction = "none";
@@ -51,10 +52,39 @@ function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
   new ResizeObserver(preparar).observe(cv);
   return {
     get vazia() { return !tracos.length; },
-    get dados() { return tracos.map(t => t.map(p => p.join(",")).join(" ")).join(";"); },
-    set dados(s) { tracos = s ? s.split(";").map(t => t.split(" ").map(p => p.split(",").map(Number))) : []; desenhar(); },
+    get dados() { return tracosParaTexto(tracos); },
+    set dados(s) { tracos = textoParaTracos(s); desenhar(); },
     limpar() { tracos = []; desenhar(); aoMudar && aoMudar(); }
   };
 }
 
+// Assinatura compacta (link curto, o WhatsApp do Android corta link longo):
+// cada traço = ponto inicial em 4 letras + 2 letras por passo (dx, dy de -31 a 32); traços separados por "."
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+function tracosParaTexto(tracos) {
+  const passo = d => Math.min(Math.max(d, -31), 32);
+  return tracos.map(t => {
+    let [px, py] = t[0], s = B64[px >> 6] + B64[px & 63] + B64[py >> 6] + B64[py & 63];
+    for (const [x, y] of t.slice(1)) {
+      let dx = x - px, dy = y - py;
+      while (dx || dy) { const sx = passo(dx), sy = passo(dy); s += B64[sx + 31] + B64[sy + 31]; px += sx; py += sy; dx -= sx; dy -= sy; }
+    }
+    return s;
+  }).join(".");
+}
+function textoParaTracos(s) {
+  if (!s) return [];
+  if (s.includes(",")) return s.split(";").map(t => t.split(" ").map(p => p.split(",").map(Number))); // formato antigo
+  const n = c => B64.indexOf(c);
+  return s.split(".").map(t => {
+    let x = n(t[0]) * 64 + n(t[1]), y = n(t[2]) * 64 + n(t[3]);
+    const pts = [[x, y]];
+    for (let i = 4; i < t.length; i += 2) { x += n(t[i]) - 31; y += n(t[i + 1]) - 31; pts.push([x, y]); }
+    return pts;
+  });
+}
+{ // autoteste: os pontos originais voltam iguais (passos intermediários são só retas no meio)
+  const r = textoParaTracos(tracosParaTexto([[[0,0],[100,3],[500,160]],[[7,9]]])), tem = (t, p) => t.some(q => q[0] === p[0] && q[1] === p[1]);
+  console.assert(tem(r[0], [0,0]) && tem(r[0], [100,3]) && tem(r[0], [500,160]) && r[1].length === 1 && tem(r[1], [7,9]), "assinatura compacta", JSON.stringify(r));
+}
 console.assert(dec(enc({ a:"Locação ção 🎉 R$ 1.200,50" })).a === "Locação ção 🎉 R$ 1.200,50", "enc/dec");
