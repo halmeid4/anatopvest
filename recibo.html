@@ -130,7 +130,7 @@
   </div>
 </main>
 
-<script src="assinatura.js?v=4"></script>
+<script src="assinatura.js?v=5"></script>
 <script>
 const U = ["","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez","onze","doze","treze","quatorze","quinze","dezesseis","dezessete","dezoito","dezenove"];
 const D = ["","","vinte","trinta","quarenta","cinquenta","sessenta","setenta","oitenta","noventa"];
@@ -196,11 +196,11 @@ function enviarCliente() {
   const d = Object.fromEntries(CAMPOS.map(id => [id, $(id).value]));
   d.ass = pad.dados;
   guardarNumero();
-  abrirWhats(fone, `Olá, ${d.pagador.split(" ")[0] || ""}! 😊\nSegue seu recibo da *AnaTopVest* (nº ${d.numero}) no valor de *R$ ${d.valor}*${d.referente ? ", referente a " + d.referente : ""}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}\nVer e salvar o recibo:\n${linkCom(d)}`);
+  abrirWhats(fone, `Olá, ${d.pagador.split(" ")[0] || ""}! 😊\nSegue seu recibo da *AnaTopVest* (nº ${d.numero}) no valor de *R$ ${d.valor}*${d.referente ? ", referente a " + d.referente : ""}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}\nVer e salvar o recibo:\n${linkCom(d, CAMPOS)}`);
 }
 
 let pad;
-const d = lerHash();
+const d = lerHash(CAMPOS);
 if (d) { // cliente abrindo o recibo recebido
   document.body.classList.add("cliente");
   CAMPOS.forEach(id => { $(id).value = d[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });

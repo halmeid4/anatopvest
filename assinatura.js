@@ -11,8 +11,23 @@ const foneBR = s => { let f = String(s).replace(/\D/g, ""); return f.length < 10
 // dados no ?d= do link: o WhatsApp do iPhone não deixa clicável o que vem depois do "#"
 const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0))));
-const linkCom = dados => location.origin + location.pathname + "?d=" + enc(dados);
-const lerHash = () => { const s = new URLSearchParams(location.search).get("d") || location.hash.slice(1); return s ? dec(s) : null; }; // "#" = links antigos
+// link curto (o WhatsApp do Android corta link longo): só os valores, na ordem de `chaves`,
+// e a assinatura à parte em &a= (já é texto seguro para link, não precisa codificar de novo).
+// `chaves` só pode crescer no FIM, senão os links já enviados abrem com campos trocados.
+function linkCom(dados, chaves) {
+  const v = chaves.map(k => dados[k] ?? "");
+  while (v.length && v[v.length - 1] === "") v.pop();
+  return location.origin + location.pathname + "?d=" + enc(v) + (dados.ass ? "&a=" + dados.ass : "");
+}
+function lerHash(chaves) {
+  const p = new URLSearchParams(location.search), s = p.get("d") || location.hash.slice(1); // "#" = links antigos
+  if (!s) return null;
+  const v = dec(s);
+  if (!Array.isArray(v)) return v; // links antigos: objeto com nomes
+  const o = Object.fromEntries(chaves.map((k, i) => [k, v[i] ?? ""]));
+  if (p.get("a")) o.ass = p.get("a");
+  return o;
+}
 
 // traços guardados num espaço fixo 500x160, assim a assinatura cabe no link e redesenha em qualquer tela
 function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
@@ -43,7 +58,7 @@ function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
     cv.addEventListener("pointermove", e => {
       if (!atual) return;
       const p = pos(e), u = atual[atual.length - 1];
-      if (Math.abs(p[0] - u[0]) + Math.abs(p[1] - u[1]) < 3) return; // menos pontos = link menor
+      if (Math.abs(p[0] - u[0]) + Math.abs(p[1] - u[1]) < 6) return; // menos pontos = link menor
       atual.push(p); desenhar();
     });
     cv.addEventListener("pointerup", fim);
