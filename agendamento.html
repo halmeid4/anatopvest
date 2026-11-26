@@ -60,6 +60,30 @@
     @page { size:A4; margin:12mm; }
     body { background:#fff; } .doc { box-shadow:none; margin:0 auto; }
     button { display:none !important; }
+    /* tudo numa folha A4 */
+    @page { margin:8mm; }
+    body { font-size:12px; line-height:1.35; }
+    .doc { max-width:none; padding:14px 22px; }
+    .doc::before { inset:4px; }
+    .topo { padding-bottom:4px; }
+    .topo img { width:72px; height:72px; }
+    h1 { font-size:18px; margin:0; }
+    h2 { font-size:10px; margin:8px 0 1px; }
+    label { font-size:10px; margin-top:2px; }
+    input, textarea { padding:1px 2px; font-size:12px; }
+    textarea { min-height:0; height:auto; }
+    .grade { gap:0 14px; grid-template-columns:repeat(3, 1fr); }
+    .grade .cheio { grid-column:1 / -1; }
+    .equip { grid-template-columns:repeat(4, 1fr); gap:4px 8px; margin-top:2px; }
+    .item { padding:2px 8px; font-size:12px; }
+    .item input { width:36px; padding:0; font-size:12px; }
+    .valores { padding:0 10px 4px; margin-top:4px; }
+    .restante { font-size:14px; margin-top:2px; }
+    .termo { font-size:11px; padding:4px 8px; }
+    .assinatura { margin-top:8px; padding-top:2px; }
+    #ass { width:60%; margin:0 auto; }
+    .selo { font-size:11px; margin:2px 0 0; }
+    .selo strong { font-size:13px; }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
   @media (max-width:520px) { .doc { margin:0; border-radius:0; padding:26px 20px; } .grade, .equip { grid-template-columns:1fr; } .acoes button { flex:1 1 100%; } }
@@ -139,7 +163,7 @@
   </section>
 </main>
 
-<script src="assinatura.js?v=5"></script>
+<script src="assinatura.js?v=6"></script>
 <script>
 const EQUIP = { qCama:"Cama elástica", qPiscina:"Piscina de bolinhas", qMesa:"Mesa", qCadeira:"Cadeira" };
 const CAMPOS = ["nome","fone","doc","data","hora","local", ...Object.keys(EQUIP), "itens","total","sinal","obs"];

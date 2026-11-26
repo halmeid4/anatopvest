@@ -64,6 +64,13 @@
     .barra, .dica { display:none !important; }
     .recibo { box-shadow:none; margin:0; max-width:none; }
     #ass { border-color:transparent; background:transparent; }
+    /* tudo numa folha A4 */
+    @page { margin:8mm; }
+    .recibo { padding:22px 30px; }
+    header img { width:90px; height:90px; }
+    .corpo p { line-height:1.9; margin:6px 0; font-size:16px; }
+    .valor { margin:12px 0 4px; }
+    .rodape { margin-top:14px; }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
   @media (max-width:600px) {
@@ -130,7 +137,7 @@
   </div>
 </main>
 
-<script src="assinatura.js?v=5"></script>
+<script src="assinatura.js?v=6"></script>
 <script>
 const U = ["","um","dois","três","quatro","cinco","seis","sete","oito","nove","dez","onze","doze","treze","quatorze","quinze","dezesseis","dezessete","dezoito","dezenove"];
 const D = ["","","vinte","trinta","quarenta","cinquenta","sessenta","setenta","oitenta","noventa"];

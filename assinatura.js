@@ -51,7 +51,7 @@ function criarAssinatura(cv, { editavel = true, aoMudar } = {}) {
   };
   const lim = (v, max) => Math.min(Math.max(Math.round(v), 0), max);
   const pos = e => { const r = cv.getBoundingClientRect(); return [lim((e.clientX - r.left) * W / r.width, W), lim((e.clientY - r.top) * H / r.height, H)]; };
-  const fim = () => { if (atual) { atual = null; aoMudar && aoMudar(); } };
+  const fim = () => { if (atual) { const s = simplificar(atual); atual.length = 0; atual.push(...s); atual = null; desenhar(); aoMudar && aoMudar(); } };
   if (editavel) {
     cv.style.touchAction = "none";
     cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId); atual = [pos(e)]; tracos.push(atual); desenhar(); });
@@ -86,6 +86,17 @@ function tracosParaTexto(tracos) {
     }
     return s;
   }).join(".");
+}
+// tira pontos que quase não mudam o desenho (Douglas-Peucker; tol em unidades de 500x160)
+function simplificar(pts, tol = 1.2) {
+  if (pts.length < 3) return pts;
+  const a = pts[0], b = pts[pts.length - 1], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+  let max = 0, idx = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i], d = len ? Math.abs(dy * p[0] - dx * p[1] + b[0] * a[1] - b[1] * a[0]) / len : Math.hypot(p[0] - a[0], p[1] - a[1]);
+    if (d > max) { max = d; idx = i; }
+  }
+  return max > tol ? [...simplificar(pts.slice(0, idx + 1), tol).slice(0, -1), ...simplificar(pts.slice(idx), tol)] : [a, b];
 }
 function textoParaTracos(s) {
   if (!s) return [];
