@@ -86,10 +86,10 @@
 </head>
 <body>
 <div class="barra">
-  <label class="dona">WhatsApp do cliente<input id="fone" type="tel" inputmode="tel" placeholder="(41) 9 0000-0000"></label>
+  <label class="dona">WhatsApp do cliente <small>(só no computador)</small><input id="fone" type="tel" inputmode="tel" placeholder="(41) 9 0000-0000"></label>
   <button type="button" class="dona" onclick="limpar()">Novo recibo</button>
   <button type="button" class="principal" onclick="window.print()">Imprimir / Salvar PDF</button>
-  <button type="button" class="verde dona" onclick="enviarCliente()">Enviar ao cliente pelo WhatsApp</button>
+  <button type="button" class="verde dona" onclick="enviarCliente()">Enviar imagem pelo WhatsApp</button>
 </div>
 
 <main class="recibo">
@@ -194,16 +194,83 @@ function limpar() {
 }
 const guardarNumero = () => { localStorage.recibo = Number($("numero").value) || localStorage.recibo || 0; };
 
-function enviarCliente() {
-  const fone = foneBR($("fone").value);
-  if (!fone) { alert("Preencha o WhatsApp do cliente com DDD."); return $("fone").focus(); }
+// envia o recibo como IMAGEM: no celular abre o "compartilhar" (escolher WhatsApp e o cliente)
+async function enviarCliente() {
   if (!lerValor(valor.value)) { alert("Preencha o valor."); return valor.focus(); }
+  if (!$("pagador").value.trim()) { alert("Preencha o nome do cliente."); return $("pagador").focus(); }
   if (pad.vazia) return alert("Assine no quadro de assinatura antes de enviar.");
-  if (location.protocol !== "https:") return alert("Abra o recibo pelo endereço publicado (https://...) para o link funcionar no celular do cliente.");
   const d = Object.fromEntries(CAMPOS.map(id => [id, $(id).value]));
-  d.ass = pad.dados;
+  const blob = await new Promise(r => gerarImagem(d).toBlob(r, "image/png"));
+  const arquivo = new File([blob], `recibo-${d.numero}-${d.pagador.split(" ")[0]}.png`, { type:"image/png" });
+  const texto = `Olá, ${d.pagador.split(" ")[0]}! 😊 Segue seu recibo da AnaTopVest (nº ${d.numero}). Obrigado pela preferência!`;
   guardarNumero();
-  abrirWhats(fone, `Olá, ${d.pagador.split(" ")[0] || ""}! 😊\nSegue seu recibo da *AnaTopVest* (nº ${d.numero}) no valor de *R$ ${d.valor}*${d.referente ? ", referente a " + d.referente : ""}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}\nVer e salvar o recibo:\n${linkCom(d, CAMPOS)}`);
+  if (navigator.canShare && navigator.canShare({ files:[arquivo] })) {
+    try { await navigator.share({ files:[arquivo], text:texto }); } catch (e) { if (e.name !== "AbortError") alert("Não foi possível compartilhar: " + e.message); }
+    return;
+  }
+  // computador: baixa a imagem e abre a conversa para anexar
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = arquivo.name; a.click();
+  const fone = foneBR($("fone").value);
+  if (fone) abrirWhats(fone, texto);
+  else alert("Imagem do recibo baixada. Anexe-a na conversa do cliente no WhatsApp.");
+}
+
+// desenha o recibo numa imagem 1080 px de largura (mesmo visual da página)
+function gerarImagem(d) {
+  const W = 1080, P = 70, c = document.createElement("canvas"), x = c.getContext("2d");
+  const serif = (t, b) => `${b ? "700 " : ""}${t}px Georgia, "Times New Roman", serif`;
+  const sans = (t, b) => `${b ? "700 " : ""}${t}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  const quebrar = (t, fonte, larg) => {
+    x.font = fonte; const out = []; let l = "";
+    t.split(" ").forEach(w => { const t2 = l ? l + " " + w : w; if (x.measureText(t2).width > larg && l) { out.push(l); l = w; } else l = t2; });
+    return out.concat(l);
+  };
+  const valorTxt = lerValor(d.valor).toLocaleString("pt-BR", { minimumFractionDigits:2 });
+  const frase = "Recebi(emos) de " + d.pagador + (d.doc ? ", CPF/CNPJ " + d.doc : "") +
+    ", a importância de " + extenso(lerValor(d.valor)) + (d.referente ? ", referente a " + d.referente : "") + ".";
+  const linhas = [
+    ...quebrar(frase, serif(32), W - 2 * P).map(t => [t, serif(32)]),
+    ...(resumo(d) ? quebrar("Equipamentos: " + resumo(d), serif(32), W - 2 * P).map(t => [t, serif(32)]) : []),
+    ...(d.pagamento ? [["Forma de pagamento: " + d.pagamento, serif(32)]] : []),
+    ["Para clareza, firmo(amos) o presente.", serif(32)]
+  ];
+  const TOPO = 300, sigW = 420, sigH = Math.round(sigW * $("ass").height / Math.max($("ass").width, 1));
+  c.height = P + TOPO + 110 + linhas.length * 54 + 60 + sigH + 110 + P;
+
+  x.fillStyle = "#fff"; x.fillRect(0, 0, W, c.height);
+  x.setLineDash([1, 16]); x.lineCap = "round"; x.lineWidth = 6; x.strokeStyle = "#1c1c1c"; x.strokeRect(24, 24, W - 48, c.height - 48); x.setLineDash([]);
+  x.textBaseline = "top"; x.fillStyle = "#1c1c1c";
+
+  // cabeçalho
+  x.drawImage(document.querySelector("header img"), P, P, 200, 200);
+  x.font = serif(26); x.fillText("ANATOPVEST LOCAÇÕES / TURISMO", P + 230, P + 30);
+  x.font = sans(22); x.fillStyle = "#6b6b6b";
+  ["CNPJ 10.218.413/0001-09", "(41) 9 9902-5052 · (41) 9 9920-4684", "Lapa – PR"].forEach((t, i) => x.fillText(t, P + 230, P + 76 + i * 32));
+  x.textAlign = "right"; x.fillStyle = "#1c1c1c"; x.font = serif(64, true); x.fillText("RECIBO", W - P, P + 200);
+  x.font = sans(24); x.fillStyle = "#6b6b6b"; x.fillText("Nº " + d.numero, W - P, P + 272);
+  x.fillStyle = "#c98fb0"; x.fillRect(P, P + TOPO + 10, W - 2 * P, 3);
+
+  // valor
+  let y = P + TOPO + 40;
+  x.font = sans(40, true); const vw = x.measureText("R$ " + valorTxt).width + 60;
+  x.fillStyle = "#f8eef3"; x.strokeStyle = "#c98fb0"; x.lineWidth = 2;
+  x.beginPath(); x.roundRect(W - P - vw, y, vw, 70, 14); x.fill(); x.stroke();
+  x.fillStyle = "#1c1c1c"; x.fillText("R$ " + valorTxt, W - P - 30, y + 14);
+  x.textAlign = "left"; y += 110;
+
+  // texto
+  linhas.forEach(([t, f]) => { x.font = f; x.fillText(t, P, y); y += 54; });
+
+  // data e assinatura
+  y += 60;
+  const sx = W - P - sigW;
+  x.drawImage($("ass"), sx, y, sigW, sigH);
+  x.font = serif(30); x.fillText("Lapa – PR, " + dataBR(d.data), P, y + sigH - 20);
+  y += sigH + 6;
+  x.lineWidth = 2; x.strokeStyle = "#1c1c1c"; x.beginPath(); x.moveTo(sx, y); x.lineTo(W - P, y); x.stroke();
+  x.textAlign = "center"; x.font = sans(24); x.fillText("AnaTopVest Locações/Turismo", sx + sigW / 2, y + 12);
+  x.font = sans(20); x.fillStyle = "#6b6b6b"; x.fillText("CNPJ 10.218.413/0001-09", sx + sigW / 2, y + 46);
+  return c;
 }
 
 let pad;
