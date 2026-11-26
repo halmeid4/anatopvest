@@ -17,7 +17,7 @@ const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.repl
 function linkCom(dados, chaves) {
   const v = chaves.map(k => dados[k] ?? "");
   while (v.length && v[v.length - 1] === "") v.pop();
-  return location.origin + location.pathname + "?d=" + enc(v) + (dados.ass ? "&a=" + dados.ass : "");
+  return location.origin + location.pathname.replace(/\.html$/, "") + "?d=" + enc(v) + (dados.ass ? "&a=" + dados.ass : "");
 }
 function lerHash(chaves) {
   const p = new URLSearchParams(location.search), s = p.get("d") || location.hash.slice(1); // "#" = links antigos
