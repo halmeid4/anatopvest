@@ -157,7 +157,7 @@ function devolver() {
 /* ---------- início ---------- */
 try { recebido = lerHash(); } catch { alert("Link inválido ou incompleto. Peça um novo link à AnaTopVest."); }
 if (recebido) {
-  CAMPOS.forEach(id => { $(id).value = recebido[id] || ""; $(id).readOnly = true; });
+  CAMPOS.forEach(id => { $(id).value = recebido[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });
   document.querySelectorAll("textarea").forEach(t => t.style.height = t.scrollHeight + 4 + "px");
   const assinado = !!recebido.ass;
   document.body.classList.add(assinado ? "assinado" : "cliente");

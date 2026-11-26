@@ -184,7 +184,7 @@ let pad;
 const d = lerHash();
 if (d) { // cliente abrindo o recibo recebido
   document.body.classList.add("cliente");
-  CAMPOS.forEach(id => { $(id).value = d[id] || ""; $(id).readOnly = true; });
+  CAMPOS.forEach(id => { $(id).value = d[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });
   mostrarExtenso();
   pad = criarAssinatura($("ass"), { editavel:false });
   pad.dados = d.ass || "";
