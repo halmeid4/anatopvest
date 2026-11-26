@@ -47,6 +47,7 @@
   .legenda { display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--cinza); margin-top:6px; }
   .legenda button { padding:6px 12px; font-size:13px; }
   .grande { width:100%; margin-top:16px; font-size:17px; padding:14px; }
+  .termo { font-size:14px; margin:4px 0 0; padding:10px 12px; border-left:3px solid var(--rosa); background:#fbf6f9; }
   .selo { text-align:center; font-size:14px; margin-top:8px; }
   .selo strong { display:block; font-size:16px; }
 
@@ -92,6 +93,9 @@
   <h2>Condições</h2>
   <textarea id="obs" placeholder="Forma de pagamento, cancelamento, regras de uso… (fica salvo para os próximos)"></textarea>
 
+  <h2>Termo de responsabilidade</h2>
+  <p class="termo">O(a) cliente se responsabiliza pela utilização correta e pelos cuidados com os equipamentos agendados durante todo o período da locação, respondendo por danos, perdas ou extravios causados por mau uso.</p>
+
   <!-- você -->
   <section class="envio dona">
     <label for="meu">Seu WhatsApp: o cliente devolve assinado para este número</label>
@@ -108,14 +112,14 @@
   <!-- cliente / documento assinado -->
   <section class="assinatura" aria-labelledby="t-ass">
     <h2 id="t-ass">Assinatura do cliente</h2>
-    <label class="concordo so-cliente"><input type="checkbox" id="concordo"> Li e concordo com os dados e condições deste agendamento.</label>
+    <label class="concordo so-cliente"><input type="checkbox" id="concordo"> Li e concordo com os dados, as condições e o termo de responsabilidade deste agendamento.</label>
     <canvas id="ass" aria-label="Quadro para assinar com o dedo ou o mouse"></canvas>
     <div class="legenda so-cliente"><span>Assine com o dedo no quadro acima</span><button type="button" onclick="pad.limpar()">Limpar</button></div>
     <button type="button" class="verde grande so-cliente" onclick="devolver()">Assinar e devolver para a AnaTopVest</button>
     <p class="ajuda so-cliente">Abre o WhatsApp já na conversa com a AnaTopVest. É só tocar em enviar.</p>
 
     <div class="so-assinado">
-      <p class="selo"><strong id="quem"></strong>✔ Li e concordo com os dados e condições deste agendamento.<br>Assinado eletronicamente em <span id="quando"></span></p>
+      <p class="selo"><strong id="quem"></strong>✔ Li e concordo com os dados, as condições e o termo de responsabilidade deste agendamento.<br>Assinado eletronicamente em <span id="quando"></span></p>
       <button type="button" class="grande" onclick="window.print()">Imprimir / Salvar PDF</button>
     </div>
   </section>
