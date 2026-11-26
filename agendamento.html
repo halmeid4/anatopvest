@@ -22,6 +22,11 @@
 
   h2 { font:700 13px system-ui; letter-spacing:.1em; text-transform:uppercase; color:#9a5c7e; margin:22px 0 4px; }
   .grade { display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; }
+  .equip { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:8px; }
+  .item { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0; font-size:16px; color:var(--tinta);
+          border:1px solid #e3d3dc; border-radius:10px; padding:8px 12px; }
+  .item input { width:64px; text-align:center; border:1px solid #bbb; border-radius:8px; padding:6px 4px; font-weight:700; }
+  .cliente .item input, .assinado .item input { border-color:transparent; }
   .cheio { grid-column:1 / -1; }
   label { display:block; font-size:13px; color:var(--cinza); margin-top:8px; }
   input, textarea, select { width:100%; font:inherit; border:0; border-bottom:1px solid #bbb; padding:4px 2px; background:transparent; color:inherit; }
@@ -57,7 +62,7 @@
     button { display:none !important; }
     * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
-  @media (max-width:520px) { .doc { margin:0; border-radius:0; padding:26px 20px; } .grade { grid-template-columns:1fr; } .acoes button { flex:1 1 100%; } }
+  @media (max-width:520px) { .doc { margin:0; border-radius:0; padding:26px 20px; } .grade, .equip { grid-template-columns:1fr; } .acoes button { flex:1 1 100%; } }
 </style>
 </head>
 <body>
@@ -80,8 +85,17 @@
     <div><label for="data">Data</label><input id="data" type="date"></div>
     <div><label for="hora">Horário (entrega – retirada)</label><input id="hora" placeholder="14h às 20h"></div>
     <div class="cheio"><label for="local">Endereço</label><input id="local" placeholder="Rua, número, bairro – cidade"></div>
-    <div class="cheio"><label for="itens">Itens / serviço</label><textarea id="itens" placeholder="Ex.: 1 cama elástica"></textarea></div>
   </div>
+
+  <h2>Equipamentos</h2>
+  <div class="equip">
+    <label class="item"><span>Cama elástica</span><input id="qCama" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de camas elásticas"></label>
+    <label class="item"><span>Piscina de bolinhas</span><input id="qPiscina" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de piscinas de bolinhas"></label>
+    <label class="item"><span>Mesa</span><input id="qMesa" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de mesas"></label>
+    <label class="item"><span>Cadeira</span><input id="qCadeira" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="Quantidade de cadeiras"></label>
+  </div>
+  <label for="itens">Detalhes <span>(opcional)</span></label>
+  <textarea id="itens" placeholder="Ex.: cama elástica 3,05 m; mesas com toalha"></textarea>
 
   <h2>Valores</h2>
   <div class="valores grade">
@@ -94,7 +108,7 @@
   <textarea id="obs" placeholder="Forma de pagamento, cancelamento, regras de uso… (fica salvo para os próximos)"></textarea>
 
   <h2>Termo de responsabilidade</h2>
-  <p class="termo">O(a) cliente se responsabiliza pela utilização correta e pelos cuidados com os equipamentos agendados durante todo o período da locação, respondendo por danos, perdas ou extravios causados por mau uso.</p>
+  <p class="termo">O(a) cliente se responsabiliza pela utilização correta e pelos cuidados com os equipamentos listados neste agendamento durante todo o período da locação, respondendo por danos, perdas ou extravios causados por mau uso.</p>
 
   <!-- você -->
   <section class="envio dona">
@@ -127,7 +141,9 @@
 
 <script src="assinatura.js?v=4"></script>
 <script>
-const CAMPOS = ["nome","fone","doc","data","hora","local","itens","total","sinal","obs"];
+const EQUIP = { qCama:"Cama elástica", qPiscina:"Piscina de bolinhas", qMesa:"Mesa", qCadeira:"Cadeira" };
+const CAMPOS = ["nome","fone","doc","data","hora","local", ...Object.keys(EQUIP), "itens","total","sinal","obs"];
+const resumo = d => Object.entries(EQUIP).filter(([k]) => +d[k] > 0).map(([k, n]) => `${d[k]}x ${n}`).join(", ");
 const num = s => Number(String(s).replace(/[^\d,]/g, "").replace(",", ".")) || 0;
 const brl = n => n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
 function atualizar() { $("restante").textContent = brl(Math.max(num($("total").value) - num($("sinal").value), 0)); }
@@ -146,7 +162,8 @@ function enviarCliente() {
   localStorage.condicoes = $("obs").value;
   localStorage.meu = $("meu").value;
   const d = coletar(); d.meu = $("meu").value;
-  abrirWhats(fone, `Olá, ${d.nome.split(" ")[0]}! 😊\nSegue a confirmação do seu agendamento com a *AnaTopVest* para ${dataBR(d.data)}.\nConfira os dados, assine e me devolva pelo link:\n${linkCom(d)}`);
+  if (!resumo(d) && !d.itens.trim()) { alert("Informe a quantidade de pelo menos um equipamento."); return $("qCama").focus(); }
+  abrirWhats(fone, `Olá, ${d.nome.split(" ")[0]}! 😊\nSegue a confirmação do seu agendamento com a *AnaTopVest* para ${dataBR(d.data)}.\n${resumo(d) ? "Equipamentos: " + resumo(d) + "\n" : ""}Confira os dados, assine e me devolva pelo link:\n${linkCom(d)}`);
 }
 
 /* ---------- cliente ---------- */
@@ -155,13 +172,14 @@ function devolver() {
   if (!$("concordo").checked) { alert("Marque \"Li e concordo\" para continuar."); return $("concordo").focus(); }
   if (pad.vazia) return alert("Faça sua assinatura no quadro.");
   const d = { ...recebido, ass: pad.dados, quando: agora() };
-  abrirWhats(d.meu || "5541999025052", `✅ *Agendamento ASSINADO*\n${d.nome} – ${dataBR(d.data)}${d.hora ? " – " + d.hora : ""}\nAssinado em ${d.quando}\n\nVer o agendamento assinado:\n${linkCom(d)}`);
+  abrirWhats(d.meu || "5541999025052", `✅ *Agendamento ASSINADO*\n${d.nome} – ${dataBR(d.data)}${d.hora ? " – " + d.hora : ""}\n${resumo(d) ? resumo(d) + "\n" : ""}Assinado em ${d.quando}\n\nVer o agendamento assinado:\n${linkCom(d)}`);
 }
 
 /* ---------- início ---------- */
 try { recebido = lerHash(); } catch { alert("Link inválido ou incompleto. Peça um novo link à AnaTopVest."); }
 if (recebido) {
   CAMPOS.forEach(id => { $(id).value = recebido[id] || ""; $(id).readOnly = true; $(id).placeholder = ""; });
+  Object.keys(EQUIP).forEach(k => { if (!(+recebido[k] > 0)) $(k).closest(".item").style.display = "none"; }); // mostra só o que foi alugado
   document.querySelectorAll("textarea").forEach(t => t.style.height = t.scrollHeight + 4 + "px");
   const assinado = !!recebido.ass;
   document.body.classList.add(assinado ? "assinado" : "cliente");
