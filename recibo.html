@@ -218,6 +218,7 @@ async function enviarCliente() {
 // desenha o recibo numa imagem 1080 px de largura (mesmo visual da página)
 function gerarImagem(d) {
   const W = 1080, P = 70, c = document.createElement("canvas"), x = c.getContext("2d");
+  c.width = W;
   const serif = (t, b) => `${b ? "700 " : ""}${t}px Georgia, "Times New Roman", serif`;
   const sans = (t, b) => `${b ? "700 " : ""}${t}px system-ui, -apple-system, "Segoe UI", sans-serif`;
   const quebrar = (t, fonte, larg) => {
